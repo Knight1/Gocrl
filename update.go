@@ -77,7 +77,10 @@ func updateCRLs() {
 
 		if fullCRL != "" {
 			savePath := filepath.Join(dir, filepath.Base(fullCRL))
-			go downloadCRL(fullCRL, savePath)
+			go func() {
+				defer wg.Done()
+				downloadCRL(fullCRL, savePath)
+			}()
 		}
 
 		if partCRLJSON != "" && partCRLJSON != "[]" {
@@ -88,10 +91,12 @@ func updateCRLs() {
 			}
 			for _, url := range urls {
 				save := filepath.Join(dir, fmt.Sprintf(filepath.Base(url)))
-				go downloadCRL(url, save)
+				go func() {
+					defer wg.Done()
+					downloadCRL(url, save)
+				}()
 			}
 		}
-		defer wg.Done()
 	}
 	wg.Wait()
 	fmt.Println("Done!")
