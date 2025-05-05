@@ -51,7 +51,7 @@ func updateCRLs() {
 	fmt.Println("Download and parsing done. Downloading CRLs.")
 	var wg sync.WaitGroup
 	for {
-		wg.Add(1)
+
 		record, err := reader.Read()
 		if err == io.EOF {
 			break
@@ -76,6 +76,7 @@ func updateCRLs() {
 		}
 
 		if fullCRL != "" {
+			wg.Add(1)
 			savePath := filepath.Join(dir, filepath.Base(fullCRL))
 			go func() {
 				defer wg.Done()
@@ -90,6 +91,7 @@ func updateCRLs() {
 				continue
 			}
 			for _, url := range urls {
+				wg.Add(1)
 				save := filepath.Join(dir, fmt.Sprintf(filepath.Base(url)))
 				go func() {
 					defer wg.Done()
