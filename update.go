@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -48,7 +49,9 @@ func updateCRLs() {
 	}
 
 	fmt.Println("Download and parsing done. Downloading CRLs.")
+	var wg sync.WaitGroup
 	for {
+		wg.Add(1)
 		record, err := reader.Read()
 		if err == io.EOF {
 			break
@@ -58,12 +61,13 @@ func updateCRLs() {
 			continue
 		}
 
-		subject := record[index[fieldSubject]]
+		subjectRaw := record[index[fieldSubject]]
 		issuer := sanitize(record[index[fieldIssuer]])
 		fullCRL := strings.TrimSpace(record[index[fieldFullCRL]])
 		partCRLJSON := strings.TrimSpace(record[index[fieldPartitioned]])
 
 		_, orgName := parseIssuerDN(issuer)
+		subject, _ := parseIssuerDN(subjectRaw)
 
 		dir := filepath.Join(outputBaseDir, orgName, "/", subject)
 		if err := os.MkdirAll(dir, 0755); err != nil {
@@ -73,7 +77,7 @@ func updateCRLs() {
 
 		if fullCRL != "" {
 			savePath := filepath.Join(dir, filepath.Base(fullCRL))
-			downloadCRL(fullCRL, savePath)
+			go downloadCRL(fullCRL, savePath)
 		}
 
 		if partCRLJSON != "" && partCRLJSON != "[]" {
@@ -84,10 +88,12 @@ func updateCRLs() {
 			}
 			for _, url := range urls {
 				save := filepath.Join(dir, fmt.Sprintf(filepath.Base(url)))
-				downloadCRL(url, save)
+				go downloadCRL(url, save)
 			}
 		}
+		defer wg.Done()
 	}
+	wg.Wait()
 	fmt.Println("Done!")
 }
 
