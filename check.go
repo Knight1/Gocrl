@@ -34,6 +34,8 @@ func check() {
 			return nil
 		}
 
+		linting(data)
+
 		// If CRL is PEM-encoded we need to strip headers
 		if block, _ := pem.Decode(data); block != nil {
 			if block.Type == "X509 CRL" {
