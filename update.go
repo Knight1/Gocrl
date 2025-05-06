@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/md5"
 	"encoding/csv"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
@@ -105,13 +107,24 @@ func updateCRLs() {
 }
 
 func downloadCRL(url, destPath string) {
+	localETag, err := computeETag(destPath)
+	if err != nil {
+		fmt.Printf("Failed to compute ETag. File might be missing: %v\n", err)
+		return
+	}
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		fmt.Printf("failed to create request: %w", err)
+		return
 	}
 
 	client := &http.Client{
 		Timeout: time.Second * 10,
+	}
+
+	if localETag != "" {
+		req.Header.Set("If-None-Match", localETag)
 	}
 
 	resp, err := client.Do(req)
@@ -121,7 +134,7 @@ func downloadCRL(url, destPath string) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != 200 && resp.StatusCode != 304 {
 		fmt.Printf("Non-200 for %s: %d\n", url, resp.StatusCode)
 		return
 	}
@@ -133,7 +146,8 @@ func downloadCRL(url, destPath string) {
 	}
 	defer out.Close()
 
-	if _, err := io.Copy(out, resp.Body); err != nil {
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
 		fmt.Printf("Write error for %s: %v\n", destPath, err)
 	}
 }
@@ -189,4 +203,24 @@ func parseIssuerDN(dn string) (cn, org string) {
 		}
 	}
 	return
+}
+
+func computeETag(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil // no file yet
+		}
+		return "", err
+	}
+	defer f.Close()
+
+	hasher := md5.New()
+	if _, err := io.Copy(hasher, f); err != nil {
+		return "", err
+	}
+
+	sum := hasher.Sum(nil)
+	// wrap in quotes so it looks like a real ETag header
+	return `"` + hex.EncodeToString(sum) + `"`, nil
 }

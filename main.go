@@ -2,22 +2,40 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"runtime"
+)
+
+var (
+	BuildTime  string
+	CommitHash string
+	GOARCH     string
 )
 
 func main() {
-	flag.Bool("update", false, "update crl files")
+	updateFlag := flag.Bool("update", true, "update crl files")
+	checkFlag := flag.Bool("check", false, "check crl files")
+	// ocspFlag := flag.Bool("ocsp", false, "check ocsp responses")
+	debugLogging := flag.Bool("debug", false, "debug mode")
 	flag.Parse()
-	flag.Args()
 
-	/*
-		if err := os.MkdirAll(outputBaseDir, 0755); err != nil {
-			fmt.Printf("mkdir error: %v\n", err)
-			return
-		}
+	// Print Version Information
+	fmt.Println("Starting Certificate Revocation List Monitor.")
+	fmt.Println("Go version:", runtime.Version(),
+		"BuildTime:", BuildTime,
+		"CommitHash:", CommitHash,
+		"GOARCH:", GOARCH)
 
-	*/
+	if *debugLogging {
+		fmt.Println("Debug logging enabled")
+	}
 
-	check()
+	if *checkFlag {
+		check()
+	}
 
-	updateCRLs()
+	if *updateFlag {
+		updateCRLs()
+	}
+
 }
