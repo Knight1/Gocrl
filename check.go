@@ -9,12 +9,21 @@ import (
 	"time"
 )
 
+var intermediates []*x509.Certificate
+
 func check() {
 	baseDir := "crls"
 	var totalSize int64
 	var totalRevoces int
+	var err error
 
-	err := filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
+	intermediates, err = loadIntermediates()
+	if err != nil {
+		fmt.Println("  LINT: unable to load intermediates:", err)
+		return
+	}
+
+	err = filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -22,19 +31,20 @@ func check() {
 			return nil
 		}
 
-		fmt.Printf("CRL: %s\n", path)
+		if *debugLogging {
+			fmt.Printf("CRL: %s\n", path)
+		}
 
 		size := info.Size()
 		totalSize += size
-		fmt.Printf("  Size: %d bytes\n", size)
-
+		if *debugLogging {
+			fmt.Printf("  Size: %d bytes\n", size)
+		}
 		data, err := os.ReadFile(path)
 		if err != nil {
 			fmt.Printf("  Read error: %v\n\n", err)
 			return nil
 		}
-
-		linting(data)
 
 		// If CRL is PEM-encoded we need to strip headers
 		if block, _ := pem.Decode(data); block != nil {
@@ -46,30 +56,58 @@ func check() {
 		// Parse downloaded CRL
 		crl, err := x509.ParseRevocationList(data)
 		if err != nil {
+			fmt.Printf("CRL: %s\n", path)
 			fmt.Printf("  Parse error: %v\n\n", err)
 			return nil
 		}
 
-		signatureAlgorithm := crl.SignatureAlgorithm
-		fmt.Printf("  Signature Algorithm: %s\n", signatureAlgorithm)
-
-		// crl.CheckSignatureFrom()
-
-		issuer := crl.Issuer
-		fmt.Printf("  Issuer: %s\n", issuer)
-
-		now := time.Now()
-		next := crl.NextUpdate
-		fmt.Printf("  NextUpdate: %s\n", next.Format(time.RFC3339))
-		if now.After(next) {
-			fmt.Printf("  → CRL is expired as of now (%s)\n", now.Format(time.RFC3339))
-		} else {
-			fmt.Printf("  → CRL is still valid\n")
+		// find the issuing CA cert
+		var issuer *x509.Certificate
+		for _, ic := range intermediates {
+			if ic.Subject.String() == crl.Issuer.String() {
+				issuer = ic
+				err = crl.CheckSignatureFrom(issuer)
+				if err != nil {
+					fmt.Println("  LINT: unable to verify CRL:", err)
+					return err
+				}
+				break
+			}
+		}
+		if issuer == nil {
+			fmt.Println("issuer not found among intermediates:", crl.Issuer.String())
+			return nil
 		}
 
+		// do it after the first parsing.
+		linting(data)
+
+		signatureAlgorithm := crl.SignatureAlgorithm
+		if *debugLogging {
+			fmt.Printf("  Signature Algorithm: %s\n", signatureAlgorithm)
+		}
+
+		issuerName := crl.Issuer
+		if *debugLogging {
+			fmt.Printf("  Issuer: %s\n", issuerName)
+		}
+		now := time.Now()
+		next := crl.NextUpdate
+		if *debugLogging {
+			fmt.Printf("  NextUpdate: %s\n", next.Format(time.RFC3339))
+			if now.After(next) {
+				// AUDIT
+				// If we updated the CRL and it is still expired this is a CAB violation.
+				fmt.Printf("  → CRL is expired as of now (%s)\n", now.Format(time.RFC3339))
+			} else {
+				fmt.Printf("  → CRL is still valid\n")
+			}
+		}
 		// Counting revoked certificates
 		revCount := len(crl.RevokedCertificateEntries)
-		fmt.Printf("  Revoked entries: %d\n\n", revCount)
+		if *debugLogging {
+			fmt.Printf("  Revoked entries: %d\n\n", revCount)
+		}
 		totalRevoces = totalRevoces + revCount
 
 		return nil
@@ -81,4 +119,28 @@ func check() {
 
 	fmt.Printf("Total disk used by CRLs: %.2f MB\n", float64(totalSize)/(1024*1024))
 	fmt.Printf("Total revocations: %d\n", totalRevoces)
+}
+
+func loadIntermediates() ([]*x509.Certificate, error) {
+	data, err := os.ReadFile("intermediates.pem")
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		var block *pem.Block
+		block, data = pem.Decode(data)
+		if block == nil {
+			break
+		}
+		if block.Type != "CERTIFICATE" {
+			continue
+		}
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		intermediates = append(intermediates, cert)
+	}
+	return intermediates, nil
 }

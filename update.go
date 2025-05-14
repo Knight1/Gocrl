@@ -216,7 +216,8 @@ func computeETag(path string) (string, error) {
 	defer f.Close()
 
 	hasher := md5.New()
-	if _, err := io.Copy(hasher, f); err != nil {
+	_, err = io.Copy(hasher, f)
+	if err != nil {
 		return "", err
 	}
 

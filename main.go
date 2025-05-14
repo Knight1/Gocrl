@@ -7,16 +7,17 @@ import (
 )
 
 var (
-	BuildTime  string
-	CommitHash string
-	GOARCH     string
+	BuildTime    string
+	CommitHash   string
+	GOARCH       string
+	debugLogging *bool
 )
 
 func main() {
 	updateFlag := flag.Bool("update", true, "update crl files")
-	checkFlag := flag.Bool("check", false, "check crl files")
+	checkFlag := flag.Bool("check", true, "check crl files")
 	// ocspFlag := flag.Bool("ocsp", false, "check ocsp responses")
-	debugLogging := flag.Bool("debug", false, "debug mode")
+	debugLogging = flag.Bool("debug", false, "debug mode")
 	flag.Parse()
 
 	// Print Version Information
