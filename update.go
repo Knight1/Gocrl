@@ -27,14 +27,16 @@ func updateCRLs() {
 	fmt.Println("Updating CRLs... Downloading Mozilla CCADB Root and Intermediates with Trust-Bit set")
 	resp, err := http.Get(ccadbURL)
 	if err != nil {
-		panic(fmt.Errorf("failed to download CSV: %w", err))
+		fmt.Println("Error downloading Mozilla CCADB Root CA certificate:", err)
+		return
 	}
 	defer resp.Body.Close()
 
 	reader := csv.NewReader(resp.Body)
 	headers, err := reader.Read()
 	if err != nil {
-		panic(fmt.Errorf("failed to read CSV headers: %w", err))
+		fmt.Println("Error parsing Mozilla CCADB Root CA CSV Headers:", err)
+		return
 	}
 
 	// Map header names to indices
@@ -46,7 +48,8 @@ func updateCRLs() {
 	requiredFields := []string{fieldSubject, fieldIssuer, fieldFullCRL, fieldPartitioned}
 	for _, f := range requiredFields {
 		if _, ok := index[f]; !ok {
-			panic(fmt.Sprintf("missing field: %s", f))
+			fmt.Println("Missing required field in csv:", f)
+			return
 		}
 	}
 
@@ -89,7 +92,7 @@ func updateCRLs() {
 		if partCRLJSON != "" && partCRLJSON != "[]" {
 			urls, err := parsePartitionedURLs(partCRLJSON)
 			if err != nil {
-				fmt.Printf("bad partitioned‑CRL list for %q: %v\n", issuer, err)
+				fmt.Println("bad partitioned‑CRL list for", issuer, "error:", err)
 				continue
 			}
 			for _, url := range urls {

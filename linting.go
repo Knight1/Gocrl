@@ -29,7 +29,7 @@ func linting(data []byte) {
 				result.Status == lint.Fatal ||
 				result.Status == lint.Warn {
 				errors++
-				if *debugLogging {
+				if *debugLogging || *showLintErrors {
 					fmt.Println("  LINT: Error:", result.Status)
 					fmt.Println(result.LintMetadata.Description)
 					fmt.Println(result.LintMetadata.Name)
