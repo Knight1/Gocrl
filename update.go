@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/csv"
 	"encoding/hex"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 )
 
 const (
@@ -116,14 +118,15 @@ func downloadCRL(url, destPath string) {
 		return
 	}
 
+	url = cleanURL(url)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		fmt.Printf("failed to create request: %w", err)
+		fmt.Println("failed to create HEAD request:", err)
 		return
 	}
 
 	client := &http.Client{
-		Timeout: time.Second * 10,
+		Timeout: time.Second * clientTimeout,
 	}
 
 	if localETag != "" {
@@ -137,9 +140,26 @@ func downloadCRL(url, destPath string) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 && resp.StatusCode != 304 {
+	if resp.StatusCode == http.StatusNotModified {
+		if *debugLogging {
+			fmt.Println("Skipped download, CRL not modified", url)
+		}
+		return
+	}
+
+	if resp.StatusCode != 200 {
 		fmt.Printf("Non-200 for %s: %d\n", url, resp.StatusCode)
 		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Failed to read response body for", url, err)
+		return
+	}
+
+	if len(body) == 0 {
+		fmt.Println("Empty response body", url, resp.StatusCode)
 	}
 
 	out, err := os.Create(destPath)
@@ -149,9 +169,10 @@ func downloadCRL(url, destPath string) {
 	}
 	defer out.Close()
 
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		fmt.Printf("Write error for %s: %v\n", destPath, err)
+	reader := bytes.NewReader(body)
+	written, err := io.Copy(out, reader)
+	if err != nil || written != int64(len(body)) {
+		fmt.Println("Write error for", destPath, "Written:", written, "error:", err)
 	}
 }
 
@@ -227,4 +248,16 @@ func computeETag(path string) (string, error) {
 	sum := hasher.Sum(nil)
 	// wrap in quotes so it looks like a real ETag header
 	return `"` + hex.EncodeToString(sum) + `"`, nil
+}
+
+// Sometimes there are wild things in the URLs..
+func cleanURL(raw string) string {
+	var b strings.Builder
+	for _, r := range raw {
+		if unicode.IsControl(r) || unicode.Is(unicode.Cf, r) {
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }
