@@ -8,8 +8,11 @@ import (
 )
 
 var (
-	BuildTime         string
-	CommitHash        string
+	// BuildTime holds the timestamp (RFC3339) of the last build.
+	BuildTime string
+	// CommitHash holds the Git commit SHA at build time.
+	CommitHash string
+	// GOARCH holds the target architecture string (e.g. "amd64", "arm64") injected at build time.
 	GOARCH            string
 	debugLogging      *bool
 	showLintErrors    *bool
