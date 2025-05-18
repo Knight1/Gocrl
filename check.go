@@ -134,13 +134,13 @@ func check() {
 		return
 	}
 
-	fmt.Println(" Validated all CRL Files.")
+	fmt.Println("Validated all CRL Files.")
 	fmt.Printf("Total diskspace used by CRLs: %.2f MB\n", float64(totalSize)/(1024*1024))
 	fmt.Printf("Total revocations: %d\n", totalRevoces)
 }
 
 func loadIntermediates() ([]*x509.Certificate, error) {
-	data, err := os.ReadFile("intermediates.pem")
+	data, err := os.ReadFile(intermediatesFile)
 	if err != nil {
 		return nil, err
 	}
@@ -160,5 +160,6 @@ func loadIntermediates() ([]*x509.Certificate, error) {
 		}
 		intermediates = append(intermediates, cert)
 	}
+	fmt.Printf("Loaded %d intermediates.\n", len(intermediates))
 	return intermediates, nil
 }

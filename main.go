@@ -8,12 +8,13 @@ import (
 )
 
 var (
-	BuildTime      string
-	CommitHash     string
-	GOARCH         string
-	debugLogging   *bool
-	showLintErrors *bool
-	clientTimeout  time.Duration = 60 // Seconds
+	BuildTime         string
+	CommitHash        string
+	GOARCH            string
+	debugLogging      *bool
+	showLintErrors    *bool
+	clientTimeout     time.Duration = 60 // Seconds
+	intermediatesFile               = "intermediates.pem"
 )
 
 func main() {
