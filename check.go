@@ -42,8 +42,11 @@ func check() {
 		}
 		data, err := os.ReadFile(path)
 		if err != nil {
-			fmt.Printf("  Read error: %v\n\n", err)
+			fmt.Println("  Read error:", err)
 			return nil
+		}
+		if len(data) == 0 {
+			fmt.Println("  Read error: File size:", len(data))
 		}
 
 		// If CRL is PEM-encoded we need to strip headers
@@ -68,8 +71,9 @@ func check() {
 				issuer = ic
 				err = crl.CheckSignatureFrom(issuer)
 				if err != nil {
-					fmt.Println("  LINT: unable to verify CRL:", err)
-					return err
+					fmt.Println("  LINT: unable to verify Signature of", path, " CRL:", err)
+					// return err\
+					break
 				}
 				break
 			}

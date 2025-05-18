@@ -112,16 +112,16 @@ func updateCRLs() {
 }
 
 func downloadCRL(url, destPath string) {
+	// if the local etag is missing just continue and grab a new file.
 	localETag, err := computeETag(destPath)
 	if err != nil {
 		fmt.Printf("Failed to compute ETag. File might be missing: %v\n", err)
-		return
 	}
 
 	url = cleanURL(url)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		fmt.Println("failed to create HEAD request:", err)
+		fmt.Println("failed to create GET request:", err)
 		return
 	}
 
@@ -129,6 +129,10 @@ func downloadCRL(url, destPath string) {
 		Timeout: time.Second * clientTimeout,
 	}
 
+	// If-None-Match uses the etag (basically md5) to compare our local File against the File on the Server.
+	// The Server checks the etag of his file against what we sent him.
+	// If it does not match the Server responds with 200 OK and sends over the new File.
+	// If it matches we get a 304 Not Modified.
 	if localETag != "" {
 		req.Header.Set("If-None-Match", localETag)
 	}
@@ -142,7 +146,7 @@ func downloadCRL(url, destPath string) {
 
 	if resp.StatusCode == http.StatusNotModified {
 		if *debugLogging {
-			fmt.Println("Skipped download, CRL not modified", url)
+			fmt.Println("Skipped download, CRL not modified. CRL:", url)
 		}
 		return
 	}
@@ -154,12 +158,12 @@ func downloadCRL(url, destPath string) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Failed to read response body for", url, err)
+		fmt.Printf("Failed to read response body for %s. Err: %s", url, err)
 		return
 	}
 
 	if len(body) == 0 {
-		fmt.Println("Empty response body", url, resp.StatusCode)
+		fmt.Printf("Empty response body for %s. Err: %d", url, resp.StatusCode)
 	}
 
 	out, err := os.Create(destPath)
@@ -172,7 +176,7 @@ func downloadCRL(url, destPath string) {
 	reader := bytes.NewReader(body)
 	written, err := io.Copy(out, reader)
 	if err != nil || written != int64(len(body)) {
-		fmt.Println("Write error for", destPath, "Written:", written, "error:", err)
+		fmt.Println("Write error for", destPath, "Written Bytes:", written, "error:", err)
 	}
 }
 

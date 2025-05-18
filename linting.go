@@ -16,7 +16,33 @@ func linting(data []byte) {
 		return
 	}
 
-	zlintResultSet := zlint.LintRevocationList(parsed)
+	var zlintResultSet *zlint.ResultSet
+	isCA := true
+	switch {
+	case isCA:
+		reg, err := lint.GlobalRegistry().Filter(lint.FilterOptions{
+			IncludeNames: []string{"e_crl_next_update_invalid"},
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		toml := `
+[e_crl_next_update_invalid]
+SubscriberCRL = false
+`
+
+		cfg, err := lint.NewConfigFromString(toml)
+		if err != nil {
+			panic(err)
+		}
+		reg.SetConfiguration(cfg)
+
+		zlintResultSet = zlint.LintRevocationListEx(parsed, reg)
+
+	default:
+		zlintResultSet = zlint.LintRevocationList(parsed)
+	}
 
 	var errors int
 	if len(zlintResultSet.Results) == 0 {
@@ -39,6 +65,7 @@ func linting(data []byte) {
 	}
 	if errors > 0 {
 		fmt.Println("  LINT: Errors found:", errors)
+		fmt.Println("  LINT: AIA:", parsed.AuthorityKeyId, "Issuer:", parsed.Issuer.String())
 	} else if errors == 0 {
 		if *debugLogging {
 			fmt.Println("  LINT: No problems found")
