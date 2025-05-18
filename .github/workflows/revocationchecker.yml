@@ -22,6 +22,6 @@ jobs:
 
       - name: Run
         run: |
-          wget https://raw.githubusercontent.com/FiloSottile/intermediates/refs/heads/main/intermediates.pem
+          wget --quiet https://raw.githubusercontent.com/FiloSottile/intermediates/refs/heads/main/intermediates.pem
           ./Gocrl -check=false
           ./Gocrl -update=false
