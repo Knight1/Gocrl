@@ -45,8 +45,15 @@ func check() {
 			fmt.Println("  Read error:", err)
 			return nil
 		}
+
+		// If the File is empty, remove it.
 		if len(data) == 0 {
-			fmt.Println("  Read error: File size:", len(data))
+			fmt.Println("  Read error: File empyt:", path)
+			err := os.Remove(path)
+			if err != nil {
+				fmt.Printf("  Failed to remove File: %s error: %s", path, err)
+				return err
+			}
 		}
 
 		// If CRL is PEM-encoded we need to strip headers
