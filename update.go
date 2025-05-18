@@ -158,12 +158,12 @@ func downloadCRL(url, destPath string) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("Failed to read response body for %s. Err: %s", url, err)
+		fmt.Printf("Failed to read response body for %s. Err: %s\n", url, err)
 		return
 	}
 
 	if len(body) == 0 {
-		fmt.Printf("Empty response body for %s. Err: %d", url, resp.StatusCode)
+		fmt.Printf("Empty response body for %s. Err: %d\n", url, resp.StatusCode)
 	}
 
 	out, err := os.Create(destPath)

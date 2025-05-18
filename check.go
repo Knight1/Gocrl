@@ -19,8 +19,8 @@ func check() {
 
 	intermediates, err = loadIntermediates()
 	if err != nil {
-		fmt.Println("  LINT: unable to load intermediates:", err)
-		return
+		fmt.Println("  LINT: unable to load intermediates File:", err)
+		fmt.Println("  LINT: Skipping signature validation")
 	}
 
 	err = filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
@@ -51,7 +51,7 @@ func check() {
 			fmt.Println("  Read error: File empyt:", path)
 			err := os.Remove(path)
 			if err != nil {
-				fmt.Printf("  Failed to remove File: %s error: %s", path, err)
+				fmt.Printf("  Failed to remove File: %s error: %s\n", path, err)
 				return err
 			}
 		}
@@ -71,23 +71,25 @@ func check() {
 			return nil
 		}
 
-		// find the issuing CA cert
-		var issuer *x509.Certificate
-		for _, ic := range intermediates {
-			if ic.Subject.String() == crl.Issuer.String() {
-				issuer = ic
-				err = crl.CheckSignatureFrom(issuer)
-				if err != nil {
-					fmt.Println("  LINT: unable to verify Signature of", path, " CRL:", err)
-					// return err\
+		// Skip signature validation if no issuers are loaded.
+		if intermediates != nil {
+			// find the issuing CA cert
+			var issuer *x509.Certificate
+			for _, ic := range intermediates {
+				if ic.Subject.String() == crl.Issuer.String() {
+					issuer = ic
+					err = crl.CheckSignatureFrom(issuer)
+					if err != nil {
+						fmt.Println("  LINT: unable to verify Signature of", path, " CRL. Err:", err)
+						break
+					}
 					break
 				}
-				break
 			}
-		}
-		if issuer == nil {
-			fmt.Println("issuer not found among intermediates:", crl.Issuer.String())
-			return nil
+			if issuer == nil {
+				fmt.Println("issuer not found among intermediates:", crl.Issuer.String())
+				return nil
+			}
 		}
 
 		// do it after the first parsing.
@@ -106,14 +108,18 @@ func check() {
 		next := crl.NextUpdate
 		if *debugLogging {
 			fmt.Printf("  NextUpdate: %s\n", next.Format(time.RFC3339))
-			if now.After(next) {
-				// AUDIT
-				// If we updated the CRL and it is still expired this is a CAB violation.
-				fmt.Printf("  → CRL is expired as of now (%s)\n", now.Format(time.RFC3339))
-			} else {
+		}
+
+		if now.After(next) {
+			// AUDIT
+			// If we updated the CRL and it is still expired this is a CAB violation.
+			fmt.Printf("  → CRL %s is expired as of now (%s)\n", path, next)
+		} else {
+			if *debugLogging {
 				fmt.Printf("  → CRL is still valid\n")
 			}
 		}
+
 		// Counting revoked certificates
 		revCount := len(crl.RevokedCertificateEntries)
 		if *debugLogging {
@@ -128,7 +134,8 @@ func check() {
 		return
 	}
 
-	fmt.Printf("Total disk used by CRLs: %.2f MB\n", float64(totalSize)/(1024*1024))
+	fmt.Println(" Validated all CRL Files.")
+	fmt.Printf("Total diskspace used by CRLs: %.2f MB\n", float64(totalSize)/(1024*1024))
 	fmt.Printf("Total revocations: %d\n", totalRevoces)
 }
 

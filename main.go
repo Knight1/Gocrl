@@ -13,7 +13,7 @@ var (
 	GOARCH         string
 	debugLogging   *bool
 	showLintErrors *bool
-	clientTimeout  time.Duration = 30 // Seconds
+	clientTimeout  time.Duration = 60 // Seconds
 )
 
 func main() {
