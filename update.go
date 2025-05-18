@@ -99,7 +99,7 @@ func updateCRLs() {
 			}
 			for _, url := range urls {
 				wg.Add(1)
-				save := filepath.Join(dir, fmt.Sprintf("%s", filepath.Base(url)))
+				save := filepath.Join(dir, filepath.Base(url))
 				go func() {
 					defer wg.Done()
 					downloadCRL(url, save)
