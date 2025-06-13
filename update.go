@@ -58,7 +58,6 @@ func updateCRLs() {
 	fmt.Println("Download and parsing done. Downloading CRLs.")
 	var wg sync.WaitGroup
 	for {
-
 		record, err := reader.Read()
 		if err == io.EOF {
 			break
