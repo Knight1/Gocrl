@@ -27,11 +27,6 @@ git clone https://github.com/Knight1/Gocrl.git
 cd Gocrl
 ```
 
-Install dependencies:
-```sh
-go mod tidy
-```
-
 ### Usage
 Run the main application:
 ```sh
