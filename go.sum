@@ -14,8 +14,8 @@ github.com/weppos/publicsuffix-go v0.40.3-0.20250408071509-6074bbe7fd39 h1:Bz/zV
 github.com/weppos/publicsuffix-go v0.40.3-0.20250408071509-6074bbe7fd39/go.mod h1:2oFzEwGYI7lhiqG0YkkcKa6VcpjVinQbWxaPzytDmLA=
 github.com/zmap/zcrypto v0.0.0-20250418211859-7510c141e4b7 h1:EMuQ1vVR92UNChHMxYVBwCRSdU3UOiBaotqX0CvEGwc=
 github.com/zmap/zcrypto v0.0.0-20250418211859-7510c141e4b7/go.mod h1:GEZQan3t3hrYRBTDj+R6NVHWbrlgbFIEJIIuW7eKgSI=
-github.com/zmap/zlint/v3 v3.6.7 h1:ETRdgQ0MpcoyZqGGhBINCWnlFJ8TmmFotX9ezjzQRsU=
-github.com/zmap/zlint/v3 v3.6.7/go.mod h1:Tm0qwwaO629pgJ/En7M9U9Edx4+rQRuoeXVpXvgVHhA=
+github.com/zmap/zlint/v3 v3.6.8 h1:ZvdfwSgqPxeD2Sb0yhH/7jzrpFHBKAjPhzKr1vVev9c=
+github.com/zmap/zlint/v3 v3.6.8/go.mod h1:Tm0qwwaO629pgJ/En7M9U9Edx4+rQRuoeXVpXvgVHhA=
 golang.org/x/crypto v0.38.0 h1:jt+WWG8IZlBnVbomuhg2Mdq0+BBQaHbtqHEFEigjUV8=
 golang.org/x/crypto v0.38.0/go.mod h1:MvrbAqul58NNYPKnOra203SB9vpuZW0e+RRZV+Ggqjw=
 golang.org/x/net v0.40.0 h1:79Xs7wF06Gbdcg4kdCCIQArK11Z1hr5POQ6+fIYHNuY=
