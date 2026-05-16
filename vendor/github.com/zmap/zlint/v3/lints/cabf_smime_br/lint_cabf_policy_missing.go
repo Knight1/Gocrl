@@ -23,34 +23,36 @@ import (
 func init() {
 	lint.RegisterCertificateLint(&lint.CertificateLint{
 		LintMetadata: lint.LintMetadata{
-			Name:          "e_ec_other_key_usages",
-			Description:   "Other bit positions SHALL NOT be set.",
-			Citation:      "7.1.2.3.e",
+			Name:          "e_exactly_one_smime_policy",
+			Description:   "The subscriber cert SHALL include exactly one of the reserved policy OIDs in §7.1.6.1",
+			Citation:      "CABF SMIME BRs §7.1.2.3 Subscriber certificates",
 			Source:        lint.CABFSMIMEBaselineRequirements,
 			EffectiveDate: util.CABF_SMIME_BRs_1_0_0_Date,
 		},
-		Lint: NewECOtherKeyUsages,
+		Lint: NewCABFPolicyMissing,
 	})
 }
 
-type ecOtherKeyUsages struct{}
+type CABFPolicyMissing struct{}
 
-func NewECOtherKeyUsages() lint.LintInterface {
-	return &ecOtherKeyUsages{}
+func NewCABFPolicyMissing() lint.LintInterface {
+	return &CABFPolicyMissing{}
 }
 
-func (l *ecOtherKeyUsages) CheckApplies(c *x509.Certificate) bool {
-	return util.IsSubscriberCert(c) && util.IsSMIMEBRCertificate(c) && util.IsExtInCert(c, util.KeyUsageOID) && c.PublicKeyAlgorithm == x509.ECDSA
+func (l *CABFPolicyMissing) CheckApplies(c *x509.Certificate) bool {
+	return util.IsSubscriberCert(c)
 }
 
-func (l *ecOtherKeyUsages) Execute(c *x509.Certificate) *lint.LintResult {
-	if !util.HasKeyUsage(c, x509.KeyUsageDigitalSignature) && !util.HasKeyUsage(c, x509.KeyUsageKeyAgreement) {
-		if c.KeyUsage != 0 {
-			return &lint.LintResult{Status: lint.Error}
+func (l *CABFPolicyMissing) Execute(c *x509.Certificate) *lint.LintResult {
+
+	if util.ContainsExactlyOneSMIMEPolicy(c.PolicyIdentifiers) {
+		return &lint.LintResult{
+			Status: lint.Pass,
 		}
-
-		return &lint.LintResult{Status: lint.NA}
 	}
 
-	return &lint.LintResult{Status: lint.Pass}
+	return &lint.LintResult{
+		Status:  lint.Error,
+		Details: "There must be exactly one CABF SMIME BR reserved policy OID in CertificatePolicies",
+	}
 }
