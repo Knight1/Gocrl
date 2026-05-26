@@ -1,10 +1,10 @@
 # github.com/pelletier/go-toml v1.9.5
 ## explicit; go 1.12
 github.com/pelletier/go-toml
-# github.com/weppos/publicsuffix-go v0.50.4-0.20260424101603-5ad6bdf70b02
+# github.com/weppos/publicsuffix-go v0.50.4-0.20260507075217-1bd47f85b3da
 ## explicit; go 1.24.0
 github.com/weppos/publicsuffix-go/publicsuffix
-# github.com/zmap/zcrypto v0.0.0-20260426170728-e95752a6dfc1
+# github.com/zmap/zcrypto v0.0.0-20260514033604-a1159eb3cad9
 ## explicit; go 1.25.0
 github.com/zmap/zcrypto/cryptobyte
 github.com/zmap/zcrypto/cryptobyte/asn1
@@ -12,11 +12,12 @@ github.com/zmap/zcrypto/dsa
 github.com/zmap/zcrypto/encoding/asn1
 github.com/zmap/zcrypto/internal/randutil
 github.com/zmap/zcrypto/json
+github.com/zmap/zcrypto/rsa
 github.com/zmap/zcrypto/util
 github.com/zmap/zcrypto/x509
 github.com/zmap/zcrypto/x509/ct
 github.com/zmap/zcrypto/x509/pkix
-# github.com/zmap/zlint/v3 v3.7.0
+# github.com/zmap/zlint/v3 v3.7.1
 ## explicit; go 1.25.0
 github.com/zmap/zlint/v3
 github.com/zmap/zlint/v3/lint
@@ -31,16 +32,16 @@ github.com/zmap/zlint/v3/lints/etsi
 github.com/zmap/zlint/v3/lints/mozilla
 github.com/zmap/zlint/v3/lints/rfc
 github.com/zmap/zlint/v3/util
-# golang.org/x/crypto v0.50.0
+# golang.org/x/crypto v0.51.0
 ## explicit; go 1.25.0
 golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ocsp
-# golang.org/x/net v0.53.0
+# golang.org/x/net v0.54.0
 ## explicit; go 1.25.0
 golang.org/x/net/idna
-# golang.org/x/text v0.36.0
+# golang.org/x/text v0.37.0
 ## explicit; go 1.25.0
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
