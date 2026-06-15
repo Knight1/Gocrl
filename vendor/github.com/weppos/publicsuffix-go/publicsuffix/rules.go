@@ -3,13 +3,13 @@
 
 package publicsuffix
 
-const ListVersion = "PSL version 2cb079 (Fri Apr 24 06:48:03 2026)"
+const ListVersion = "PSL version ee780b (Thu May  7 00:57:06 2026)"
 
-func DefaultRules() [10203]Rule {
+func DefaultRules() [10207]Rule {
 	return r
 }
 
-var r = [10203]Rule{
+var r = [10207]Rule{
 	{1, "ac", 1, false},
 	{1, "com.ac", 2, false},
 	{1, "edu.ac", 2, false},
@@ -8098,7 +8098,6 @@ var r = [10203]Rule{
 	{1, "static-access.net", 2, true},
 	{1, "craft.me", 2, true},
 	{1, "realm.cz", 2, true},
-	{1, "on.crisp.email", 3, true},
 	{2, "cryptonomic.net", 3, true},
 	{1, "cfolks.pl", 2, true},
 	{1, "cyon.link", 2, true},
@@ -9888,6 +9887,9 @@ var r = [10203]Rule{
 	{1, "co.ua", 2, true},
 	{1, "pp.ua", 2, true},
 	{1, "as.sh.cn", 3, true},
+	{1, "vicp.fun", 2, true},
+	{1, "yicp.fun", 2, true},
+	{1, "zicp.fun", 2, true},
 	{1, "sheezy.games", 2, true},
 	{1, "myshopblocks.com", 2, true},
 	{1, "myshopify.com", 2, true},
@@ -10206,6 +10208,8 @@ var r = [10203]Rule{
 	{1, "zap.cloud", 2, true},
 	{1, "zeabur.app", 2, true},
 	{2, "zerops.app", 3, true},
+	{1, "prg1-zerops.zone", 2, true},
+	{2, "zerops.zone", 3, true},
 	{1, "bss.design", 2, true},
 	{1, "basicserver.io", 2, true},
 	{1, "virtualserver.io", 2, true},
