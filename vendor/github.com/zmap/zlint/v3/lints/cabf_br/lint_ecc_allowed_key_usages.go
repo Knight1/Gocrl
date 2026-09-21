@@ -61,13 +61,15 @@ func NewEccAllowedKU() lint.LintInterface {
 	return &eccAllowedKU{}
 }
 
-// CheckApplies returns true when the certificate has an ECC public key and a key usage extension.
+// CheckApplies returns true on subscriber certificates when the certificate
+// has an ECC public key and a key usage extension.
 func (l *eccAllowedKU) CheckApplies(c *x509.Certificate) bool {
-	return c.PublicKeyAlgorithm == x509.ECDSA && util.HasKeyUsageOID(c)
+	return c.PublicKeyAlgorithm == x509.ECDSA &&
+		util.HasKeyUsageOID(c) &&
+		util.IsSubscriberCert(c)
 }
 
 func (l *eccAllowedKU) Execute(c *x509.Certificate) *lint.LintResult {
-	allowedKeyUsages := x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement
 
 	if c.KeyUsage&x509.KeyUsageDigitalSignature == 0 {
 		return &lint.LintResult{
@@ -76,12 +78,7 @@ func (l *eccAllowedKU) Execute(c *x509.Certificate) *lint.LintResult {
 		}
 	}
 
-	if c.KeyUsage&x509.KeyUsageKeyAgreement != 0 {
-		return &lint.LintResult{
-			Status:  lint.Warn,
-			Details: "KeyAgreement key usage is not recommended for certificates with ECC public keys",
-		}
-	}
+	allowedKeyUsages := x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement
 
 	if c.KeyUsage & ^allowedKeyUsages != 0 {
 		return &lint.LintResult{

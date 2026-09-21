@@ -1,5 +1,5 @@
 /*
- * ZLint Copyright 2024 Regents of the University of Michigan
+ * ZLint Copyright 2026 Regents of the University of Michigan
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
@@ -18,8 +18,10 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"unicode/utf8"
 
 	"github.com/zmap/zcrypto/encoding/asn1"
+	"github.com/zmap/zcrypto/x509"
 )
 
 type anyContent struct {
@@ -98,6 +100,35 @@ type EtsiQcPds struct {
 	PdsLocations []PdsLocation
 }
 
+type RoleOfPSP struct {
+	RoleOfPspOid  asn1.ObjectIdentifier
+	RoleOfPspName string `asn1:"utf8"`
+}
+
+type PSD2QcType struct {
+	RolesOfPSP []RoleOfPSP
+	NCAName    string `asn1:"utf8"`
+	NCAId      string `asn1:"utf8"`
+}
+
+type EtsiPsd2 struct {
+	etsiBase
+	Decoded PSD2QcType
+}
+
+// IsPsd2CentralBankOrPublicAuthority reports whether roles declares a PSP_CB
+// (Central Bank) or PSP_PA (Public authority) role, per ETSI TS 119 495
+// Annex A. Certificates declaring either role are subject to the
+// GEN-5.2.3-1A/GEN-5.2.3-5 "NA" carve-out for NCAName/NCAId.
+func IsPsd2CentralBankOrPublicAuthority(roles []RoleOfPSP) bool {
+	for _, role := range roles {
+		if role.RoleOfPspOid.Equal(IdEtsiPsd2RolePspCb) || role.RoleOfPspOid.Equal(IdEtsiPsd2RolePspPa) {
+			return true
+		}
+	}
+	return false
+}
+
 func AppendToStringSemicolonDelim(this *string, s string) {
 	if len(*this) > 0 && len(s) > 0 {
 		(*this) += "; "
@@ -114,6 +145,34 @@ func checkAsn1Reencoding(i interface{}, originalEncoding []byte, appendIfCompari
 	}
 	if !bytes.Equal(reencoded, originalEncoding) {
 		AppendToStringSemicolonDelim(&result, appendIfComparisonFails)
+	}
+	return result
+}
+
+// psd2NameFieldMinLen and psd2NameFieldMaxLen are the SIZE(1..256) bounds
+// that ETSI TS 119 495, Annex A places on the NCAName, NCAId, and
+// RoleOfPspName UTF8String fields of PSD2QcType.
+const (
+	psd2NameFieldMinLen = 1
+	psd2NameFieldMaxLen = 256
+)
+
+// checkPsd2QcTypeSizeConstraints validates the Annex A SIZE(1..256) bound on
+// NCAName, NCAId, and each RoleOfPspName. It counts Unicode characters
+// (runes), not bytes, since the bound applies to a UTF8String's SIZE.
+func checkPsd2QcTypeSizeConstraints(psd2 PSD2QcType) string {
+	result := ""
+	checkFieldLen := func(fieldName, value string) {
+		if n := utf8.RuneCountInString(value); n < psd2NameFieldMinLen || n > psd2NameFieldMaxLen {
+			AppendToStringSemicolonDelim(&result, fmt.Sprintf(
+				"%s must be between %d and %d UTF8String characters, got %d",
+				fieldName, psd2NameFieldMinLen, psd2NameFieldMaxLen, n))
+		}
+	}
+	checkFieldLen("NCAName", psd2.NCAName)
+	checkFieldLen("NCAId", psd2.NCAId)
+	for _, role := range psd2.RolesOfPSP {
+		checkFieldLen("RoleOfPspName", role.RoleOfPspName)
 	}
 	return result
 }
@@ -243,6 +302,18 @@ func ParseQcStatem(extVal []byte, sought asn1.ObjectIdentifier) EtsiQcStmtIf {
 				return etsiBase{errorInfo: "error parsing IdEtsiQcsQcType extension statementInfo field", isPresent: true}
 			}
 			return qcType
+		} else if statem.Oid.Equal(IdEtsiPsd2Statem) {
+			etsiObj := EtsiPsd2{etsiBase: etsiBase{isPresent: true}}
+			rest, err := asn1.Unmarshal(statem.Any.FullBytes, &etsiObj.Decoded)
+			if len(rest) != 0 || err != nil {
+				etsiObj.errorInfo = "error parsing the statementInfo field"
+			} else {
+				AppendToStringSemicolonDelim(&etsiObj.errorInfo,
+					checkAsn1Reencoding(reflect.ValueOf(etsiObj.Decoded).Interface(), statem.Any.FullBytes,
+						"error with ASN.1 encoding, possibly a wrong ASN.1 string type was used"))
+				AppendToStringSemicolonDelim(&etsiObj.errorInfo, checkPsd2QcTypeSizeConstraints(etsiObj.Decoded))
+			}
+			return etsiObj
 		} else {
 			return etsiBase{errorInfo: "", isPresent: true}
 		}
@@ -251,4 +322,44 @@ func ParseQcStatem(extVal []byte, sought asn1.ObjectIdentifier) EtsiQcStmtIf {
 
 	return etsiBase{errorInfo: "", isPresent: false}
 
+}
+
+/************************************************
+
+https://www.etsi.org/deliver/etsi_en/319400_319499/31941102/02.06.01_60/en_31941102v020601p.pdf
+
+3.3 Abbreviations
+For the purposes of the present document, the abbreviations given in ETSI EN 319 401 [1], ETSI EN 319 411-1 [2] and
+the following apply:
+QCP-l Policy for EU Qualified Certificate issued to a legal person
+QCP-l-qscd Policy for EU Qualified Certificate issued to a legal person where the private key and the related
+certificate reside on a QSCD
+QCP-n Policy for EU Qualified Certificate issued to a natural person
+QCP-n-qscd Policy for EU Qualified Certificate issued to a natural person where the private key and the related
+certificate reside on a QSCD
+QEVCP-w Policy for EU qualified website certificate issued to a legal person and linking the website to that
+person based on the EVCG
+NOTE: Previous versions of the present document used the abbreviation QCP-w.
+QNCP-w Policy for EU qualified website certificate issued to a natural or a legal person and linking the
+website to that person based on the BRG
+QNCP-w-gen Policy for EU qualified website certificate issued to a natural or a legal person and linking the
+website to that person, applicable for general purpose certificate for qualified website
+authentication
+QSCD Qualified electronic Signature/Seal Creation Device
+************************************************/
+
+func IsEtsiQcNaturalPerson(cert *x509.Certificate) bool {
+	for _, policyIds := range cert.PolicyIdentifiers {
+		if policyIds.Equal(QCPnPolicyOID) {
+			return true
+		}
+		if policyIds.Equal(QCPnqscdPolicyOID) {
+			return true
+		}
+		if policyIds.Equal(QEVCPwPolicyOID) || policyIds.Equal(QNCPwPolicyOID) || policyIds.Equal(QNCPwgenPolicyOID) {
+			// a natural person has one of these properties, whereas a legal person does not have any of them
+			return TypeInName(&cert.Subject, GivenNameOID) || TypeInName(&cert.Subject, SurnameOID) || TypeInName(&cert.Subject, PseudonameOID)
+		}
+	}
+	return false
 }
