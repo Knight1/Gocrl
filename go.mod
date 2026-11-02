@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/zmap/zcrypto v0.0.0-20260906180147-3ed30b1e9340
-	github.com/zmap/zlint/v3 v3.7.2
+	github.com/zmap/zlint/v3 v3.7.3
 )
 
 require (
